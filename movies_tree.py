@@ -12,7 +12,7 @@ from lib.cmdline import OpenInputFileAction, StoreColumnsListAction, EnsureDirec
 
 FILENAME_COLUMN_ID = 0
 PATH_CWD = Path('.')
-OUTPUT_COLUMNS = {  # names of the group subdirectories
+COLUMNS = {  # names of the group subdirectories
     'title': "Podle abecedy",
     'year': "Podle roku",
     'genre': "Podle žánru",
@@ -20,15 +20,23 @@ OUTPUT_COLUMNS = {  # names of the group subdirectories
     'director': "Podle režie",
     'actor': "Podle obsazení",
 }
-OUTPUT_COLUMNS_UNGRUPPED = ('title',)  # these custom-sort directories doesn't group into subdirectories by value
-DEFAULT_INPUT_COLUMNS = (
+FLAT_GROUPBY_COLUMNS = ('title',)  # these custom-sort directories doesn't group into subdirectories by value
+DEFAULT_COLUMNS = (
     'filename', 'title', 'year', 'genre', 'genre', 'country', 'country', 'director', 'actor', 'actor',
 )
-DEFAULT_RENAME_COLUMNS = ('title', 'genre', 'country', 'director', 'actor')
+DEFAULT_GROUPBY_COLUMNS = ('title', 'genre', 'country', 'director', 'actor')
 
 
 class Program:
     def __init__(self):
+        """
+        -i input csv file (or std input)
+        -c comma-separated list of csv columns
+        -g comma-separated list of group-by columns
+        -d directory containing source media files
+        -o new tree directory (on same filesystem as the source dir)
+        -x clear new tree directory before creating new tree (not clearing CWD)
+        """
         parser = argparse.ArgumentParser(description="Creates groupped movie directories.")
 
         parser.add_argument('-i',  # INPUT CSV DATA
@@ -36,19 +44,19 @@ class Program:
                             help="The input csv file name. Reads standard input if not set.")
 
         parser.add_argument('-c',  # INPUT COLUMNS
-                            action=StoreColumnsListAction, dest='input_columns', metavar='COLUMNS',
-                            default=DEFAULT_INPUT_COLUMNS, help=f"comma-separated list of the input file's columns. "
-                                                                f"The first column is always column containing "
-                                                                f"a file name. OPTIONS: "
-                                                                f"{', '.join(sorted(OUTPUT_COLUMNS.keys()))}. "
-                                                                f"First column is always \"filename\". "
-                                                                f"DEFAULT: \"{','.join(DEFAULT_INPUT_COLUMNS)}\".")
+                            action=StoreColumnsListAction, dest='columns', metavar='COLUMNS',
+                            default=DEFAULT_COLUMNS, help=f"comma-separated list of the input file's columns. "
+                                                          f"The first column is always column containing "
+                                                          f"a file name. OPTIONS: "
+                                                          f"{', '.join(sorted(COLUMNS.keys()))}. "
+                                                          f"First column is always \"file name\". "
+                                                          f"DEFAULT: \"{','.join(DEFAULT_COLUMNS)}\".")
 
-        parser.add_argument('-r',  # RENAME BY COLUMNS
-                            action=StoreColumnsSetAction, dest='output_columns', metavar='COLUMNS',
-                            default=DEFAULT_RENAME_COLUMNS, help=f"comma-separated columns list for movies grouping. "
-                                                                 f"OPTIONS: {', '.join(sorted(OUTPUT_COLUMNS.keys()))}."
-                                                                 f" DEFAULT: \"{','.join(DEFAULT_RENAME_COLUMNS)}\".")
+        parser.add_argument('-g',  # GROUP-BY COLUMNS
+                            action=StoreColumnsSetAction, dest='groupby_columns', metavar='COLUMNS',
+                            default=DEFAULT_GROUPBY_COLUMNS, help=f"comma-separated columns list for movies grouping. "
+                                                                  f"OPTIONS: {', '.join(sorted(COLUMNS.keys()))}."
+                                                                  f" DEFAULT: \"{','.join(DEFAULT_GROUPBY_COLUMNS)}\".")
 
         parser.add_argument('-d',  # INPUT DIRECTORY
                             action=EnsureExistingDirectoryAction, dest='input_dir', metavar='DIRECTORY',
@@ -84,10 +92,10 @@ class Program:
 
             movie = self.parse_csv_movie(line)
 
-            for col in self.args.output_columns:
+            for col in self.args.groupby_columns:
                 if col in movie:
                     for i in range(len(movie[col])):
-                        if col in OUTPUT_COLUMNS_UNGRUPPED:
+                        if col in FLAT_GROUPBY_COLUMNS:
                             new_filename = self.movie_file_name(movie)
 
                         else:
@@ -96,8 +104,8 @@ class Program:
                             new_filename = self.movie_file_name(movie_)
 
                         bits = [self.args.output_dir,
-                                OUTPUT_COLUMNS[col],  # custom-sort subdirectory name
-                                None if col in OUTPUT_COLUMNS_UNGRUPPED else movie[col][i],  # group by value
+                                COLUMNS[col],  # custom-sort subdirectory name
+                                None if col in FLAT_GROUPBY_COLUMNS else movie[col][i],  # group by value
                                 f'{new_filename}{fn_extension}'
                                 ]
 
@@ -123,7 +131,7 @@ class Program:
 
     def parse_csv_movie(self, line):
         movie = dict()
-        for i, col in enumerate(self.args.input_columns):
+        for i, col in enumerate(self.args.columns):
             if col not in movie:
                 movie[col] = []
             if line[i]:

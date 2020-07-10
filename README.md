@@ -26,14 +26,11 @@ an additional list by specifying its file name in the `-s` argument.
 We take a list of files, and run it through the `movies_metadata.py`, that will
 look for movie records on čsfd.cz and print results to a csv table.
 
-The input - `/bin/ls -1 "./media/"` - is our fake csv table with only first 
+The input - `/bin/ls -Q1 "./media/"` - is our fake csv table with only first 
 column (filename) filled. We can expect each file name to be unique.
 
-If you have `GNU coreutils < 8.25`, prepend `QUOTING_STYLE=shell-escape` 
-to the following command:
-
 ```shell script
-/bin/ls -1 "./media/" | ./movies_metadata.py -o "./movies_metadata.csv"
+/bin/ls -Q1 "./media/" | ./movies_metadata.py -o "./movies_metadata.csv"
 ```
 
 The default settings can be overriden using few command-line arguments.

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import csv
 import os.path
 import shutil
@@ -10,8 +11,9 @@ from tempfile import NamedTemporaryFile
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from lib.cmdline import parse_args
-from lib.csfd import search_movies
+from lib.cmdline import OpenInputFileAction, StoreColumnsListAction, LoadFileLinesAction, ProtectFileOverwriteAction
+from lib.csfd import search_movies, AVAILABLE_COLUMNS
+from lib.settings import DEFAULT_COLUMNS, DEFAULT_SKIPPING_COLUMNS
 from lib.utils import log, string_tokens
 
 FIRST_MOVIE_YEAR = 1878
@@ -22,7 +24,57 @@ MAX_YEAR = date.today().year
 
 class Program:
     def __init__(self):
-        self.args = parse_args()
+        """
+        -i input csv file (or std input)
+        -c input columns
+        -s file with stopwords to be removed from base file name
+        -f overwrite output
+        -x filled columns
+        output csv file
+        """
+
+        parser = argparse.ArgumentParser(description="Scans movie files in a directory and returns matches from ČSFD.")
+
+        # INPUT CSV FILE
+        parser.add_argument("-i",
+                            action=OpenInputFileAction, dest="input", metavar="FILENAME", default=sys.stdin,
+                            help="The input csv file name. Reads standard input if not set.")
+
+        # INPUT COLUMNS
+        parser.add_argument("-c",
+                            action=StoreColumnsListAction, dest="columns", metavar="COLUMNS",
+                            default=DEFAULT_COLUMNS,
+                            help=f"comma-separated list of column names. "
+                                 f"OPTIONS: {', '.join(sorted(AVAILABLE_COLUMNS))}. "
+                                 f"First column is always \"file name\". "
+                                 f"DEFAULT: \"{','.join(DEFAULT_COLUMNS)}\"")
+
+        # FILES - STOPWORDS IN FILENAMES
+        parser.add_argument("-s",
+                            action=LoadFileLinesAction, nargs=1, dest="stopwords", metavar="FILE",
+                            help="Name of file containing ignored words (one stop word per line).")
+
+        # OVERWRITE OUTPUT
+        # PROHIBIT BACKUP (2nd usage)
+        parser.add_argument("-f",
+                            action="count", dest="overwrite", default=0,
+                            help="Overwrites existing output file, if used twice, overwrites without a backup.")
+
+        # OUTPUT FILLED COLUMNS TO SKIP QUERY
+        parser.add_argument("-x",
+                            action=StoreColumnsListAction, dest="skipping_columns", metavar="COLUMNS",
+                            default=DEFAULT_SKIPPING_COLUMNS,
+                            help=f"comma-separated list of columns. When all that columns are filled, "
+                                 f"no new information is searched. "
+                                 f"OPTIONS: {', '.join(sorted(AVAILABLE_COLUMNS))}. "
+                                 f"DEFAULT: \"{DEFAULT_SKIPPING_COLUMNS}\".")
+
+        # OUTPUT FILE
+        parser.add_argument('output',
+                            action=ProtectFileOverwriteAction, metavar='OUTPUT_FILE',
+                            help="Name of the output CSV file.")
+        self.args = parser.parse_args()
+
         self.stats = dict(read=0, write=0, parse=0, match=0, skip=0, drop=0)
         self.temp_output = NamedTemporaryFile(mode="w", delete=False)
         self.stopwords = set(self.args.stopwords or [])
@@ -56,9 +108,6 @@ class Program:
                             elif self.args.overwrite == 2:
                                 os.remove(self.args.output)
 
-                        print('self.temp_output.name', self.temp_output.name)
-                        print('self.args.output', self.args.output)
-
                         shutil.move(self.temp_output.name, self.args.output)
 
                     w, pm, s, d = self.stats['write'], self.stats['match'], self.stats['skip'], self.stats['drop']
@@ -71,17 +120,15 @@ class Program:
             self.args.input.seek(0)
             log(f"Total number of requested records: {total}", total)  # init console output
 
-        reader = csv.reader(self.args.input,
-                            delimiter=self.args.input_delimiter, quotechar=self.args.input_quot)
-        writer = csv.writer(self.temp_output, quoting=csv.QUOTE_MINIMAL,
-                            delimiter=self.args.output_delimiter, quotechar=self.args.output_quot)
+        reader = csv.reader(self.args.input, delimiter=",", quotechar='"')
+        writer = csv.writer(self.temp_output, quoting=csv.QUOTE_MINIMAL, delimiter=",", quotechar='"')
 
-        writer.writerow(self.args.input_columns)  # header row
+        writer.writerow(self.args.columns)  # header row
 
         for line in reader:
             self.stats['read'] += 1
 
-            record = dict((k, v) for k, v in zip(self.args.input_columns, line) if v)
+            record = dict((k, v) for k, v in zip(self.args.columns, line) if v)
 
             cols = self.args.skipping_columns
             vals = filter(None, map(record.get, cols))
@@ -109,7 +156,7 @@ class Program:
                 log(f"- processing '{query}'", **kwlog)
 
                 try:
-                    movies = search_movies(query, self.args.output_columns)
+                    movies = search_movies(query, self.args.columns)
 
                     rows = []
                     for movie in movies:
@@ -151,7 +198,7 @@ class Program:
             self.stats['match' if len(rows) == 1 and rows[0]['match'] == "100" else 'parse'] += 1
 
             for r in rows:
-                writer.writerow([r.get(col, '') for col in self.args.output_columns])
+                writer.writerow([r.get(col, '') for col in self.args.columns])
                 self.stats['write'] += 1
 
 
