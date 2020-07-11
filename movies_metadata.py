@@ -175,14 +175,12 @@ class Program:
                         matching_years = (y for y in matching_vals if (y.isdigit() and MIN_YEAR <= int(y) < MAX_YEAR))
                         movie_year = movie.get('year')
 
-                        matches_ok = movie_year in matching_years and query_tokens.issubset(result_tokens)
-
                         def match(key, value):
-                            return value == record.get(key) if value else False
+                            return value and value == record.get(key)
 
-                        perfect_match = matches_ok or (match('title', movie.get('title')) and match('year', movie_year))
-
-                        if perfect_match:
+                        # perfect match:
+                        matches_ok = movie_year in matching_years and query_tokens.issubset(result_tokens)
+                        if matches_ok or (match('title', movie.get('title')) and match('year', movie_year)):
                             rows = [{**record, **movie, 'match': "100"}]
                             break
 

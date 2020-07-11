@@ -1,5 +1,6 @@
 import datetime
 import time
+from collections import defaultdict
 from urllib.parse import quote
 
 import jellyfish
@@ -39,27 +40,21 @@ def parse_movie_roles(s: str):
     return res
 
 
-def parse_movie(pq, add_cols=None):
-    result = add_cols or {}
-
-    result['title'] = pq('h3.subject > a.film').text()
-
+def parse_movie(pq):
+    result = defaultdict(list)
+    result['title'] += [pq('h3.subject > a.film').text()]
     movie_details = pq('p:first-of-type').text()
-    """Akční / Životopisný, Francie / Velká Británie, 2017"""
-
     genres, countries, year = parse_movie_details(movie_details)
-    result['genre'], result['genre2'], *_ = genres + ['', '']
-    result['country'], result['country2'], *_ = countries + ['', '']
-    result['year'] = year
+    result['genre'] += genres
+    result['country'] += countries
+    result['year'] += [year]
 
     movie_roles = pq('p:last-of-type').text()
-    """Režie: Cédric Jimenez\nHrají: Jason Clarke, Rosamund Pike"""
-
     roles = parse_movie_roles(movie_roles) or {}
     directors = [x.strip() for x in roles.get('Režie', '').split(',')]
-    result['director'], result['director2'], *_ = directors + ['', '']
+    result['director'] += directors
     actors = [x.strip() for x in roles.get('Hrají', '').split(',')]
-    result['actor'], result['actor2'], *_ = actors + ['', '']
+    result['actor'] += actors
 
     return result
 
@@ -67,7 +62,7 @@ def parse_movie(pq, add_cols=None):
 csfd_throttle_stamp = datetime.datetime.utcfromtimestamp(0)
 
 
-def search_movies(query, add_cols=None):
+def search_movies(query):
     global csfd_throttle_stamp
 
     search_url = '{url}?q={query}'.format(url=SEARCH_URL, query=quote(query))
@@ -91,7 +86,7 @@ def search_movies(query, add_cols=None):
 
     movies = []
     for movie_pq in results:
-        result = parse_movie(movie_pq, add_cols)
+        result = parse_movie(movie_pq)
 
         jaro = jellyfish.jaro_winkler(result['title'], query)
 
