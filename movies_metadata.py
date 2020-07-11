@@ -116,7 +116,10 @@ class Program:
 
     def main(self):
         total = None
-        if self.args.input != sys.stdin:
+        if self.args.input == sys.stdin:
+            log("Reading the standard input...")
+
+        else:
             total = len([line for line in self.args.input])
             self.args.input.seek(0)
             log("Total number of requested records: {0}".format(total))  # init console output
