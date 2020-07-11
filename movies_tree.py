@@ -45,18 +45,20 @@ class Program:
 
         parser.add_argument('-c',  # INPUT COLUMNS
                             action=StoreColumnsListAction, dest='columns', metavar='COLUMNS',
-                            default=DEFAULT_COLUMNS, help=f"comma-separated list of the input file's columns. "
-                                                          f"The first column is always column containing "
-                                                          f"a file name. OPTIONS: "
-                                                          f"{', '.join(sorted(COLUMNS.keys()))}. "
-                                                          f"First column is always \"file name\". "
-                                                          f"DEFAULT: \"{','.join(DEFAULT_COLUMNS)}\".")
+                            default=DEFAULT_COLUMNS, help="comma-separated list of the input file's columns. "
+                                                          "The first column is always column containing "
+                                                          "a file name. OPTIONS: " +
+                                                          "{0}. ".format(', '.join(sorted(COLUMNS.keys()))) +
+                                                          'First column is always "file name". '
+                                                          'DEFAULT: "{0}".'.format(','.join(DEFAULT_COLUMNS)))
 
         parser.add_argument('-g',  # GROUP-BY COLUMNS
                             action=StoreColumnsSetAction, dest='groupby_columns', metavar='COLUMNS',
-                            default=DEFAULT_GROUPBY_COLUMNS, help=f"comma-separated columns list for movies grouping. "
-                                                                  f"OPTIONS: {', '.join(sorted(COLUMNS.keys()))}."
-                                                                  f" DEFAULT: \"{','.join(DEFAULT_GROUPBY_COLUMNS)}\".")
+                            default=DEFAULT_GROUPBY_COLUMNS, help="comma-separated columns list for movies grouping. "
+                                                                  "OPTIONS: "
+                                                                  "{0}.".format(', '.join(sorted(COLUMNS.keys()))) +
+                                                                  ' DEFAULT: '
+                                                                  '"{0}".'.format(','.join(DEFAULT_GROUPBY_COLUMNS)))
 
         parser.add_argument('-d',  # INPUT DIRECTORY
                             action=EnsureExistingDirectoryAction, dest='input_dir', metavar='DIRECTORY',
@@ -77,7 +79,7 @@ class Program:
         output_is_cwd = self.args.output_dir.samefile('.')
         if self.args.output_clear and not output_is_cwd:
             shutil.rmtree(self.args.output_dir)
-            print(f'Removed all contents of the target directory: {self.args.output_dir.absolute()}/')
+            print('Removed all contents of the target directory: {0}/'.format(self.args.output_dir.absolute()))
 
         reader = csv.reader(self.args.input, delimiter=",", quotechar='"')
         next(reader)  # skip header row. TODO: separate command-line argument?
@@ -87,7 +89,7 @@ class Program:
             source_path = Path(self.args.input_dir, original_filename)
 
             if not source_path.is_file():
-                print(f'Source movie file not found: {source_path.absolute()}.')
+                print('Source movie file not found: {0}.'.format(source_path.absolute()))
                 continue
 
             movie = self.parse_csv_movie(line)
@@ -106,7 +108,7 @@ class Program:
                         bits = [self.args.output_dir,
                                 COLUMNS[col],  # custom-sort subdirectory name
                                 None if col in FLAT_GROUPBY_COLUMNS else movie[col][i],  # group by value
-                                f'{new_filename}{fn_extension}'
+                                '{name}{ext}'.format(name=new_filename, ext=fn_extension)
                                 ]
 
                         target_path = Path(*filter(None, bits))
@@ -114,7 +116,8 @@ class Program:
                         target_path.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
 
                         if target_path.is_dir():
-                            print(f'Target path is a directory, I will not touch that: {target_path.absolute()}')
+                            print('Target path is a directory, I will not touch that: '
+                                  '{0}'.format(target_path.absolute()))
                             continue
 
                         if target_path.is_file():
@@ -123,10 +126,11 @@ class Program:
 
                         try:
                             source_path.link_to(target_path)
-                            print(f"Created new hardlink: '{source_path}' -> '{target_path}'")
+                            print("Created new hardlink: '{0}' -> '{1}'".format(source_path, target_path))
 
                         except FileExistsError:
-                            print(f"I would like to overwrite, I will not touch that: {target_path.absolute()}.")
+                            print("I would like to overwrite, I will not touch that: {0}."
+                                  .format(target_path.absolute()))
                             # continue
 
     def parse_csv_movie(self, line):
@@ -159,7 +163,7 @@ class Program:
         """
         Supersmradi - Malí Géniové 2 (1997, Bob Clark; Rodinný, Komedie; Jon Voight, Scott Baio)
         """
-        return f'{title} ({details})' if details else title
+        return '{0} ({1})'.format(title, details) if details else title
 
 
 if __name__ == "__main__":

@@ -21,7 +21,7 @@ class EnsureExistingDirectoryAction(SimpleAction):
     def action(self, parser, namespace, value, option_string=None):
         path = Path(value)
         if not path.is_dir():
-            raise argparse.ArgumentError(self, f"Not a directory: {path.absolute()}")
+            raise argparse.ArgumentError(self, "Not a directory: {0}".format(path.absolute()))
         return super().action(parser, namespace, path, option_string)
 
 
@@ -29,7 +29,7 @@ class EnsureDirectoryAction(SimpleAction):
     def action(self, parser, namespace, value, option_string=None):
         path = Path(value)
         if path.exists() and not path.is_dir():
-            raise argparse.ArgumentError(self, f"Not a directory: {path.absolute()}")
+            raise argparse.ArgumentError(self, "Not a directory: {0}".format(path.absolute()))
         path.mkdir(mode=0o755, parents=True, exist_ok=True)
         return super().action(parser, namespace, path, option_string)
 
@@ -46,7 +46,7 @@ class LoadFileLinesAction(SimpleAction):
             try:
                 new_value = set([x for x in f.read().strip().splitlines() if x])
             except IOError as e:
-                raise argparse.ArgumentError(self, f'error reading {value}: {e}')
+                raise argparse.ArgumentError(self, 'error reading {value}: {e}'.format(value=value, e=e))
 
             return super().action(parser, namespace, new_value, option_string)
 
@@ -69,5 +69,3 @@ class StoreColumnsListAction(SimpleAction):
     def action(self, parser, namespace, value, option_string=None):
         value = list([s.strip() for s in value.lower().strip().split(',') if s])
         return super().action(parser, namespace, value, option_string)
-
-

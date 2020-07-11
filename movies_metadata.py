@@ -44,10 +44,10 @@ class Program:
         parser.add_argument("-c",
                             action=StoreColumnsListAction, dest="columns", metavar="COLUMNS",
                             default=DEFAULT_COLUMNS,
-                            help=f"comma-separated list of column names. "
-                                 f"OPTIONS: {', '.join(sorted(AVAILABLE_COLUMNS))}. "
-                                 f"First column is always \"file name\". "
-                                 f"DEFAULT: \"{','.join(DEFAULT_COLUMNS)}\"")
+                            help="comma-separated list of column names. "
+                                 "OPTIONS: {0}. ".format(', '.join(sorted(AVAILABLE_COLUMNS))) +
+                                 'First column is always "file name". '
+                                 'DEFAULT: "{0}"'.format(','.join(DEFAULT_COLUMNS)))
 
         # FILES - STOPWORDS IN FILENAMES
         parser.add_argument("-s",
@@ -64,10 +64,10 @@ class Program:
         parser.add_argument("-x",
                             action=StoreColumnsListAction, dest="skipping_columns", metavar="COLUMNS",
                             default=DEFAULT_SKIPPING_COLUMNS,
-                            help=f"comma-separated list of columns. When all that columns are filled, "
-                                 f"no new information is searched. "
-                                 f"OPTIONS: {', '.join(sorted(AVAILABLE_COLUMNS))}. "
-                                 f"DEFAULT: \"{DEFAULT_SKIPPING_COLUMNS}\".")
+                            help="comma-separated list of columns. When all that columns are filled, "
+                                 "no new information is searched. "
+                                 "OPTIONS: {0}. ".format(', '.join(sorted(AVAILABLE_COLUMNS))) +
+                                 'DEFAULT: "{0}".'.format(DEFAULT_SKIPPING_COLUMNS))
 
         # OUTPUT FILE
         parser.add_argument('output',
@@ -83,7 +83,7 @@ class Program:
 
     def backup(self, original_file_name, count=0):
         def fname(i):
-            return f"{original_file_name}.bak{f'.{i}' if i else ''}"
+            return "{fn}.bak{suff}".format(fn=original_file_name, suff='.{0}'.format(i) if i else '')
 
         backup = Path(fname(count))
         if backup.is_file():
@@ -111,14 +111,15 @@ class Program:
                         shutil.move(self.temp_output.name, self.args.output)
 
                     w, pm, s, d = self.stats['write'], self.stats['match'], self.stats['skip'], self.stats['drop']
-                    log(f"\nWrote: {w}; perfect matches: {pm}, skipped: {s}, dropped: {d}\n")
+                    log("\nWrote: {w}; perfect matches: {pm}, skipped: {s}, dropped: {d}\n".format(
+                        w=w, pm=pm, s=s, d=d))
 
     def main(self):
         total = None
         if self.args.input != sys.stdin:
             total = len([line for line in self.args.input])
             self.args.input.seek(0)
-            log(f"Total number of requested records: {total}", total)  # init console output
+            log("Total number of requested records: {0}".format(total))  # init console output
 
         reader = csv.reader(self.args.input, delimiter=",", quotechar='"')
         writer = csv.writer(self.temp_output, quoting=csv.QUOTE_MINIMAL, delimiter=",", quotechar='"')
@@ -153,7 +154,7 @@ class Program:
                     self.stats['drop'] += 1
                     continue
 
-                log(f"- processing '{query}'", **kwlog)
+                log("- processing '{0}'".format(query), **kwlog)
 
                 try:
                     movies = search_movies(query, self.args.columns)
@@ -189,7 +190,7 @@ class Program:
 
                 except RequestsConnectionError:
                     rows = [{**record}]
-                    log(f"Connection error ({query})", **kwlog)
+                    log("Connection error ({0})".format(query), **kwlog)
 
             else:
                 self.stats['skip'] += 1

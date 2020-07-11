@@ -22,7 +22,7 @@ def parse_movie_details(details: str):
     genres = details[0] if len(details) else ''
     countries = details[1].strip() if len(details) > 1 else ''
     if countries.isnumeric():
-        year = f'{countries}'
+        year = '{0}'.format(countries)
         countries = ''
     else:
         year = details[2] if len(details) > 2 else ''
@@ -63,7 +63,7 @@ csfd_throttle_stamp = datetime.datetime.utcfromtimestamp(0)
 def search_movies(query, filter_columns=None, add_cols=None):
     global csfd_throttle_stamp
 
-    search_url = f'{SEARCH_URL}?q={quote(query)}'
+    search_url = '{url}?q={query}'.format(url=SEARCH_URL, query=quote(query))
 
     if csfd_throttle_stamp is not None:
         delta = (csfd_throttle_stamp - datetime.datetime.now()).total_seconds()
@@ -92,7 +92,7 @@ def search_movies(query, filter_columns=None, add_cols=None):
         jaro = jellyfish.jaro_winkler(result['title'], query)
 
         if filter_columns is None or 'match' in filter_columns:
-            result = dict(match=f"{round(jaro * 100)}", **result)
+            result = dict(match="{0}".format({round(jaro * 100)}), **result)
 
         movies += [result]
 
