@@ -67,7 +67,7 @@ class Program:
                             help="comma-separated list of columns. When all that columns are filled, "
                                  "no new information is searched. "
                                  "OPTIONS: {0}. ".format(', '.join(sorted(AVAILABLE_COLUMNS))) +
-                                 'DEFAULT: "{0}".'.format(DEFAULT_SKIPPING_COLUMNS))
+                                 'DEFAULT: "{0}".'.format(','.join(DEFAULT_SKIPPING_COLUMNS)))
 
         # OUTPUT FILE
         parser.add_argument('output',
@@ -157,7 +157,7 @@ class Program:
                 log("- processing '{0}'".format(query), **kwlog)
 
                 try:
-                    movies = search_movies(query, self.args.columns)
+                    movies = search_movies(query)
 
                     rows = []
                     for movie in movies:

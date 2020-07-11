@@ -1,7 +1,6 @@
 import datetime
 import time
 from urllib.parse import quote
-import yaml
 
 import jellyfish
 import requests
@@ -30,7 +29,17 @@ def parse_movie_details(details: str):
     return genres, countries, year.strip()
 
 
-def parse_movie(pq, filter_columns=None, add_cols=None):
+def parse_movie_roles(s: str):
+    # Režie: Cédric Jimenez\nHrají: Jason Clarke, Rosamund Pike
+    res = {}
+    rec = s.split('\n')
+    for r in rec:
+        key, val, *_ = r.split(':') + ['', '']
+        res[key.trim()] = [v.trim() for v in val.split(',')]
+    return res
+
+
+def parse_movie(pq, add_cols=None):
     result = add_cols or {}
 
     result['title'] = pq('h3.subject > a.film').text()
@@ -38,21 +47,19 @@ def parse_movie(pq, filter_columns=None, add_cols=None):
     movie_details = pq('p:first-of-type').text()
     """Akční / Životopisný, Francie / Velká Británie, 2017"""
 
-    if not filter_columns or filter_columns.intersection({'genre', 'genre2', 'country', 'country2', 'year'}):
-        genres, countries, year = parse_movie_details(movie_details)
-        result['genre'], result['genre2'], *_ = genres + ['', '']
-        result['country'], result['country2'], *_ = countries + ['', '']
-        result['year'] = year
+    genres, countries, year = parse_movie_details(movie_details)
+    result['genre'], result['genre2'], *_ = genres + ['', '']
+    result['country'], result['country2'], *_ = countries + ['', '']
+    result['year'] = year
 
     movie_roles = pq('p:last-of-type').text()
     """Režie: Cédric Jimenez\nHrají: Jason Clarke, Rosamund Pike"""
 
-    if not filter_columns or filter_columns.intersection({'director', 'director2', 'actor', 'actor2'}):
-        roles = yaml.safe_load(movie_roles) or {}
-        directors = [x.strip() for x in roles.get('Režie', '').split(',')]
-        result['director'], result['director2'], *_ = directors + ['', '']
-        actors = [x.strip() for x in roles.get('Hrají', '').split(',')]
-        result['actor'], result['actor2'], *_ = actors + ['', '']
+    roles = parse_movie_roles(movie_roles) or {}
+    directors = [x.strip() for x in roles.get('Režie', '').split(',')]
+    result['director'], result['director2'], *_ = directors + ['', '']
+    actors = [x.strip() for x in roles.get('Hrají', '').split(',')]
+    result['actor'], result['actor2'], *_ = actors + ['', '']
 
     return result
 
@@ -60,7 +67,7 @@ def parse_movie(pq, filter_columns=None, add_cols=None):
 csfd_throttle_stamp = datetime.datetime.utcfromtimestamp(0)
 
 
-def search_movies(query, filter_columns=None, add_cols=None):
+def search_movies(query, add_cols=None):
     global csfd_throttle_stamp
 
     search_url = '{url}?q={query}'.format(url=SEARCH_URL, query=quote(query))
@@ -79,20 +86,16 @@ def search_movies(query, filter_columns=None, add_cols=None):
     if not content:
         return []
 
-    if filter_columns is not None:
-        filter_columns = set(filter_columns)
-
     pq = PyQuery(content)
     results = [PyQuery(p) for p in pq('#search-films > div.content > ul.ui-image-list > li')]
 
     movies = []
     for movie_pq in results:
-        result = parse_movie(movie_pq, filter_columns, add_cols)
+        result = parse_movie(movie_pq, add_cols)
 
         jaro = jellyfish.jaro_winkler(result['title'], query)
 
-        if filter_columns is None or 'match' in filter_columns:
-            result = dict(match="{0}".format({round(jaro * 100)}), **result)
+        result = dict(match="{0}".format({round(jaro * 100)}), **result)
 
         movies += [result]
 
