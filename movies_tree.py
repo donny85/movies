@@ -125,7 +125,11 @@ class Program:
                                 continue  # be quiet when nothing is needed to be done
 
                         try:
-                            source_path.link_to(target_path)
+                            if hasattr(source_path, 'link_to'):
+                                source_path.link_to(target_path)
+                            else:  # python<3.8
+                                os.link(source_path, target_path)
+
                             print("Created new hardlink: '{0}' -> '{1}'".format(source_path, target_path))
 
                         except FileExistsError:
