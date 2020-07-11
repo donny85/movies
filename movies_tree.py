@@ -48,17 +48,19 @@ class Program:
                             default=DEFAULT_COLUMNS, help="comma-separated list of the input file's columns. "
                                                           "The first column is always column containing "
                                                           "a file name. OPTIONS: " +
-                                                          "{0}. ".format(', '.join(sorted(COLUMNS.keys()))) +
-                                                          'First column is always "file name". '
+                                                          ', '.join(sorted(COLUMNS.keys())) +
+                                                          '. First column is always "file name". '
                                                           'DEFAULT: "{0}".'.format(','.join(DEFAULT_COLUMNS)))
 
         parser.add_argument('-g',  # GROUP-BY COLUMNS
                             action=StoreColumnsSetAction, dest='groupby_columns', metavar='COLUMNS',
                             default=DEFAULT_GROUPBY_COLUMNS, help="comma-separated columns list for movies grouping. "
-                                                                  "OPTIONS: "
-                                                                  "{0}.".format(', '.join(sorted(COLUMNS.keys()))) +
-                                                                  ' DEFAULT: '
-                                                                  '"{0}".'.format(','.join(DEFAULT_GROUPBY_COLUMNS)))
+                                                                  "OPTIONS: " +
+                                                                  str(', '.join(sorted(COLUMNS.keys()))) +
+                                                                  '. DEFAULT: ' +
+                                                                  str(','.join(DEFAULT_GROUPBY_COLUMNS)) +
+                                                                  '.'
+                            )
 
         parser.add_argument('-d',  # INPUT DIRECTORY
                             action=EnsureExistingDirectoryAction, dest='input_dir', metavar='DIRECTORY',
@@ -89,7 +91,7 @@ class Program:
             source_path = Path(self.args.input_dir, original_filename)
 
             if not source_path.is_file():
-                print('Source movie file not found: {0}.'.format(source_path.absolute()))
+                print('Source movie file not found: ' + str(source_path.absolute()))
                 continue
 
             movie = self.parse_csv_movie(line)
@@ -116,8 +118,7 @@ class Program:
                         target_path.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
 
                         if target_path.is_dir():
-                            print('Target path is a directory, I will not touch that: '
-                                  '{0}'.format(target_path.absolute()))
+                            print('Target path is a directory, I will not touch that: ' + str(target_path.absolute()))
                             continue
 
                         if target_path.is_file():
@@ -128,7 +129,7 @@ class Program:
                             if hasattr(source_path, 'link_to'):
                                 source_path.link_to(target_path)
                             else:  # python<3.8
-                                os.link(source_path.absolute(), target_path.absolute())
+                                os.link(str(source_path.absolute()), str(target_path.absolute()))
 
                             print("Created new hardlink: '{0}' -> '{1}'".format(source_path, target_path))
 
