@@ -128,7 +128,7 @@ class Program:
                             if hasattr(source_path, 'link_to'):
                                 source_path.link_to(target_path)
                             else:  # python<3.8
-                                os.link(source_path, target_path)
+                                os.link(source_path.absolute(), target_path.absolute())
 
                             print("Created new hardlink: '{0}' -> '{1}'".format(source_path, target_path))
 
