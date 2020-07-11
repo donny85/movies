@@ -168,7 +168,8 @@ class Program:
         """
         Supersmradi - Malí Géniové 2 (1997, Bob Clark; Rodinný, Komedie; Jon Voight, Scott Baio)
         """
-        return '{0} ({1})'.format(title, details) if details else title
+        fn = '{0} ({1})'.format(title, details) if details else title
+        return fn.replace(r'/', '_')
 
 
 if __name__ == "__main__":
