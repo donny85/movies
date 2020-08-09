@@ -33,7 +33,7 @@ The input - `/bin/ls -Q1 "./media/"` - is our fake csv table with only first
 column (filename) filled. We can expect each file name to be unique.
 
 ```shell script
-/bin/ls -Q1 "./media/" | ./movies_metadata.py -o "./movies_metadata.csv"
+/bin/ls -Q1 "./media/" | ./movies_metadata.py "./movies_metadata.csv"
 ```
 
 The default settings can be overriden using few command-line arguments.

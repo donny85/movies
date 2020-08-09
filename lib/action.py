@@ -36,7 +36,10 @@ class EnsureDirectoryAction(SimpleAction):
 
 class OpenInputFileAction(SimpleAction):
     def action(self, parser, namespace, value, option_string=None):
-        value = open(value, 'r')
+        try:
+            value = open(value, 'r')
+        except FileNotFoundError:
+            raise argparse.ArgumentError(self, 'file not found: ' + value)
         return super().action(parser, namespace, value, option_string)
 
 

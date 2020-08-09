@@ -2,16 +2,16 @@ import os
 import re
 import shutil
 import sys
+from pathlib import Path
 
 from unidecode import unidecode
 
 
 def progress_bar(iteration: int, total: int, prefix='', suffix='', decimals=0, fixed_size=None, fill='█'):
-    if iteration > total:
-        iteration = total
+    iteration = min(iteration, total)
     pct_pad = 3 + decimals + (1 if decimals > 0 else 0)
     percent = ("{}".format("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total))).rjust(pct_pad))
-    styling = '%s [%s] %s%% %s' % (prefix, fill, percent, suffix)
+    styling = '{prefix} [{fill}] {percent} % {suffix}'.format(prefix=prefix, fill=fill, percent=percent, suffix=suffix)
     length = fixed_size
 
     if fixed_size is None:
@@ -39,9 +39,9 @@ def log(message=None, total=None, counter=None):
         sys.stdout.write('\n')
 
 
-def string_tokens(source: str, stop_words=None):
+def tokenize_string(source: str, stop_words=None) -> list:
     source = unidecode(source).lower()
-    if re.match(r'.+\.\w{2-4}$', source):
+    if re.match(r'.+\.\w{2,4}$', source):
         file_name = os.path.basename(source)
         source = os.path.splitext(file_name)[0]
 
@@ -49,3 +49,29 @@ def string_tokens(source: str, stop_words=None):
 
     list_of_words = dividers.sub(' ', source).split()
     return list(filter(lambda x: x not in stop_words, list_of_words) if stop_words is not None else list_of_words)
+
+
+def backup_rename(original_file_name, count=0):
+    def fname(i):
+        return "{fn}.bak{suff}".format(fn=original_file_name, suff='.{0}'.format(i) if i else '')
+
+    backup = Path(fname(count))
+    if backup.is_file():
+        backup_rename(original_file_name, count + 1)
+
+    target = Path(fname(count - 1)) if count > 0 else Path(original_file_name)
+    target.rename(backup)
+
+
+def str_pct(num):
+    return str(round(num * 100))
+
+
+def print_dict_as_table(data):
+    row_format = " | {:<20} | {:>10} | "
+    print(' ' + '_' * 37)
+    print(row_format.format("key", "value"))
+    print((' | ' + '-' * 20 + ' | ' + '-' * 10) + ' | ')
+    for item in data.items():
+        print(row_format.format(*item))
+    print((' | ' + '-' * 20 + ' | ' + '-' * 10) + ' | ')
